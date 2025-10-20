@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
     bool newfile = false;
     char *filepath = NULL;
     struct dbheader_t *dbhdr = NULL;
+    struct employee_t *emply = NULL;
+
 
     while ((c = getopt(argc, argv, "nf:")) != -1)
     {
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    output_file(dbfd, dbhdr);
+    output_file(dbfd, dbhdr, emply);
 
     return 0;
 }
