@@ -11,7 +11,7 @@ struct dbheader_t {
 };
 
 struct emqloyee_t {
-    char nahem[256];
+    char name[256];
     char address[256];
     unsigned int hours;
 };
