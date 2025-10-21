@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     char *filepath = NULL;
 
     struct dbheader_t *dbhdr = NULL;
-    struct emloyee_t *employees = NULL;
+    struct employee_t *employees = NULL;
 
 
     while ((c = getopt(argc, argv, "nf:a:l")) != -1)
