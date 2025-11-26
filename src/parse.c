@@ -125,7 +125,11 @@ int read_employees(int fd, struct dbheader_t *dbhdr, struct employee_t **employe
         return STATUS_ERROR;
     }
 
-    read(fd, employees, count * sizeof(struct employee_t));
+    ssize_t got = read(fd, employees, (size_t)count * sizeof(struct employee_t));
+    if (got != (ssize_t)((size_t)count * sizeof(struct employee_t))) {
+        free(employees);
+        return STATUS_ERROR;
+    }
 
     int i = 0;
     for (; i < count; i++)
