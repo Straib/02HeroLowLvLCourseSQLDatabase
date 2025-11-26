@@ -143,32 +143,34 @@ int read_employees(int fd, struct dbheader_t *dbhdr, struct employee_t **employe
 
 int output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees)
 {
-    if (fd < 0)
-    {
-        printf("Got a bad FD from the user\n");
+    if (fd < 0 || !dbhdr)
         return STATUS_ERROR;
-    }
 
-    int realcount = dbhdr->count;
+    int realcount = dbhdr->count; /* host-endian */
 
-    dbhdr->magic = htonl(dbhdr->magic);
-    dbhdr->filesize = htonl(sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount));
-    dbhdr->count = htons(dbhdr->count);
-    dbhdr->version = htons(dbhdr->version);
+    /* Make a temporary copy of header and convert fields for disk */
+    struct dbheader_t hdr_copy = *dbhdr;
+    hdr_copy.magic = htonl(hdr_copy.magic);
+    hdr_copy.filesize = htonl((uint32_t)(sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount)));
+    hdr_copy.count = htons((uint16_t)realcount);
+    hdr_copy.version = htons((uint16_t)hdr_copy.version);
 
-    lseek(fd, 0, SEEK_SET);
+    if (lseek(fd, 0, SEEK_SET) < 0)
+        return STATUS_ERROR;
 
-    write(fd, dbhdr, sizeof(struct dbheader_t));
+    if (write(fd, &hdr_copy, sizeof(hdr_copy)) != sizeof(hdr_copy))
+        return STATUS_ERROR;
 
-    int i = 0;
-    for (; i < realcount; i++)
-    {
-        employees[i].hours = htonl(employees[i].hours);
-        write(fd, &employees[i], sizeof(struct employee_t));
+    for (int i = 0; i < realcount; ++i) {
+        struct employee_t tmp = employees[i];
+        tmp.hours = htonl(tmp.hours);
+        if (write(fd, &tmp, sizeof(tmp)) != sizeof(tmp))
+            return STATUS_ERROR;
     }
 
     return STATUS_SUCCESS;
 }
+
 
 int validate_db_header(int fd, struct dbheader_t **headerOut)
 {
