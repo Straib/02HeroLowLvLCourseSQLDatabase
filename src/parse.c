@@ -23,52 +23,90 @@ int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees)
     return STATUS_SUCCESS;
 }
 
+// int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *addstring)
+// {
+
+//     if (NULL == dbhdr)
+//         return STATUS_ERROR;
+//     if (NULL == employees)
+//         return STATUS_ERROR;
+//     if (NULL == *employees)
+//         return STATUS_ERROR;
+//     if (NULL == addstring)
+//         return STATUS_ERROR;
+
+//     char *name = strtok(addstring, ",");
+//     if (NULL == name)
+//         return STATUS_ERROR;
+
+//     char *addr = strtok(NULL, ",");
+//     if (NULL == addr)
+//         return STATUS_ERROR;
+
+//     char *hours = strtok(NULL, ",");
+//     if (NULL == hours)
+//         return STATUS_ERROR;
+
+//     struct employee_t *e = *employees;
+
+
+//     e = realloc(e, sizeof(struct employee_t) * (dbhdr->count + 1));
+//     if (!e)
+//     {
+//         return STATUS_ERROR;
+//     }
+
+//     *employees = e;
+
+//     strncpy(e[dbhdr->count - 1].name, name, sizeof(e[dbhdr->count - 1].name) - 1);
+//     strncpy(e[dbhdr->count - 1].address, addr, sizeof(e[dbhdr->count - 1].address) - 1);
+
+//     e[dbhdr->count - 1].hours = atoi(hours);
+
+
+//     dbhdr->count++;
+
+
+//     return STATUS_SUCCESS;
+// }
+
 int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *addstring)
 {
-
-    if (NULL == dbhdr)
-        return STATUS_ERROR;
-    if (NULL == employees)
-        return STATUS_ERROR;
-    if (NULL == *employees)
-        return STATUS_ERROR;
-    if (NULL == addstring)
+    if (!dbhdr || !employees || !addstring)
         return STATUS_ERROR;
 
     char *name = strtok(addstring, ",");
-    if (NULL == name)
-        return STATUS_ERROR;
-
     char *addr = strtok(NULL, ",");
-    if (NULL == addr)
-        return STATUS_ERROR;
-
     char *hours = strtok(NULL, ",");
-    if (NULL == hours)
+    if (!name || !addr || !hours)
         return STATUS_ERROR;
 
-    struct employee_t *e = *employees;
-
-
-    e = realloc(e, sizeof(struct employee_t) * (dbhdr->count + 1));
-    if (!e)
-    {
+    size_t new_count = (size_t)dbhdr->count + 1;
+    struct employee_t *newbuf = realloc(*employees, sizeof(struct employee_t) * new_count);
+    if (!newbuf)
         return STATUS_ERROR;
-    }
 
-    *employees = e;
+    /* set pointer back */
+    *employees = newbuf;
 
-    strncpy(e[dbhdr->count - 1].name, name, sizeof(e[dbhdr->count - 1].name) - 1);
-    strncpy(e[dbhdr->count - 1].address, addr, sizeof(e[dbhdr->count - 1].address) - 1);
+    /* initialize the new slot to zero then fill */
+    struct employee_t *slot = &newbuf[new_count - 1];
+    memset(slot, 0, sizeof(*slot));
 
-    e[dbhdr->count - 1].hours = atoi(hours);
+    /* copy and ensure NUL termination */
+    strncpy(slot->name, name, sizeof(slot->name) - 1);
+    slot->name[sizeof(slot->name) - 1] = '\0';
 
+    strncpy(slot->address, addr, sizeof(slot->address) - 1);
+    slot->address[sizeof(slot->address) - 1] = '\0';
 
-    dbhdr->count++;
+    slot->hours = atoi(hours);
 
+    dbhdr->count = (uint16_t)new_count; /* keep dbhdr->count in host-endian */
 
     return STATUS_SUCCESS;
 }
+
 
 int read_employees(int fd, struct dbheader_t *dbhdr, struct employee_t **employeesOut)
 {
