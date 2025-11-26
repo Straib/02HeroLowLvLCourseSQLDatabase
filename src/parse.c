@@ -12,8 +12,11 @@
 
 int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees)
 {
-    int i = 0;
-    for(;i < dbhdr->count; i++) {
+    if (dbhdr == NULL || employees == NULL) {
+        return STATUS_ERROR;
+    }
+
+    for (int i = 0; i < dbhdr->count; i++) {
         printf("Employee %d\n", i);
         printf("\tName: %s\n", employees[i].name);
         printf("\tAdress: %s\n", employees[i].address);
@@ -22,6 +25,7 @@ int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees)
 
     return STATUS_SUCCESS;
 }
+
 
 // int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *addstring)
 // {
