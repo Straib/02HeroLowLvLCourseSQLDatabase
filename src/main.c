@@ -22,12 +22,13 @@ int main(int argc, char *argv[])
     bool list = false;
     char *addstring = NULL;
     char *filepath = NULL;
+    char *removestring = NULL;
 
     struct dbheader_t *dbhdr = NULL;
     struct employee_t *employees = NULL;
 
 
-    while ((c = getopt(argc, argv, "nf:a:l")) != -1)
+    while ((c = getopt(argc, argv, "nf:a:ld:")) != -1)
     {
         switch (c)
         {
@@ -42,6 +43,9 @@ int main(int argc, char *argv[])
             break;
         case 'l':
             list = true;
+            break;
+        case 'd':
+            removestring = optarg;
             break;
         case '?':
             printf("Unkown option -%c\n", c);
@@ -93,6 +97,10 @@ int main(int argc, char *argv[])
 
     if(list) {
         list_employees(dbhdr, employees);
+    }
+
+    if(removestring) {
+        remove_employee(dbhdr, &employees, removestring);
     }
 
     output_file(dbfd, dbhdr, employees);

@@ -26,5 +26,7 @@ int read_employees(int fd, struct dbheader_t *, struct employee_t **employeesOut
 int output_file(int fd, struct dbheader_t *, struct employee_t *employees);
 int add_employee(struct dbheader_t *, struct employee_t **employees, char *addstring);
 int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees);
+int remove_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *removestring);
+int find_employee_index(struct dbheader_t *dbhdr, struct employee_t *employees, char *removestring);
 
 #endif

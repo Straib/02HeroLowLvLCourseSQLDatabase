@@ -10,13 +10,70 @@
 #include "common.h"
 #include "parse.h"
 
-int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees)
+int find_employee_index(struct dbheader_t *dbhdr, struct employee_t *employees, char *removestring)
 {
-    if (dbhdr == NULL || employees == NULL) {
+    if (!dbhdr || !employees || !removestring)
+    {
         return STATUS_ERROR;
     }
 
-    for (int i = 0; i < dbhdr->count; i++) {
+    int index = 0;
+
+    for (; index < dbhdr->count; index++)
+    {
+        if (strcmp(employees[index].name, removestring) == 0)
+        {
+            return index;
+        }
+    }
+
+    return -1;
+}
+
+int remove_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *removestring)
+{
+    if (!dbhdr || !employees || !removestring)
+    {
+        return STATUS_ERROR;
+    }
+
+    int userIndex = find_employee_index(dbhdr, *employees, removestring);
+    if(userIndex == -1) {
+        perror("no such employee\n");
+        return STATUS_ERROR;
+    }
+
+    memmove(&(*employees)[userIndex], &(*employees)[userIndex + 1], (dbhdr->count - userIndex - 1) * sizeof(struct employee_t));
+
+    size_t new_count = (size_t)dbhdr->count - 1;
+
+    if (new_count == 0) {
+        free(*employees);
+        *employees = NULL;
+        dbhdr->count = 0;
+        return STATUS_SUCCESS;
+    }
+
+    struct employee_t *newbuf = realloc(*employees, sizeof(struct employee_t) * new_count);
+
+    if (!newbuf)
+        return STATUS_ERROR;
+
+    *employees = newbuf;
+    dbhdr->count = (uint16_t)new_count;
+
+    return STATUS_SUCCESS;
+}
+
+int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees)
+{
+    if (dbhdr == NULL || employees == NULL)
+    {
+        return STATUS_ERROR;
+    }
+
+    for (int i = 0; i < dbhdr->count; i++)
+    {
         printf("Employee %d\n", i);
         printf("\tName: %s\n", employees[i].name);
         printf("\tAdress: %s\n", employees[i].address);
@@ -26,58 +83,12 @@ int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees)
     return STATUS_SUCCESS;
 }
 
-
-// int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *addstring)
-// {
-
-//     if (NULL == dbhdr)
-//         return STATUS_ERROR;
-//     if (NULL == employees)
-//         return STATUS_ERROR;
-//     if (NULL == *employees)
-//         return STATUS_ERROR;
-//     if (NULL == addstring)
-//         return STATUS_ERROR;
-
-//     char *name = strtok(addstring, ",");
-//     if (NULL == name)
-//         return STATUS_ERROR;
-
-//     char *addr = strtok(NULL, ",");
-//     if (NULL == addr)
-//         return STATUS_ERROR;
-
-//     char *hours = strtok(NULL, ",");
-//     if (NULL == hours)
-//         return STATUS_ERROR;
-
-//     struct employee_t *e = *employees;
-
-
-//     e = realloc(e, sizeof(struct employee_t) * (dbhdr->count + 1));
-//     if (!e)
-//     {
-//         return STATUS_ERROR;
-//     }
-
-//     *employees = e;
-
-//     strncpy(e[dbhdr->count - 1].name, name, sizeof(e[dbhdr->count - 1].name) - 1);
-//     strncpy(e[dbhdr->count - 1].address, addr, sizeof(e[dbhdr->count - 1].address) - 1);
-
-//     e[dbhdr->count - 1].hours = atoi(hours);
-
-
-//     dbhdr->count++;
-
-
-//     return STATUS_SUCCESS;
-// }
-
 int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *addstring)
 {
     if (!dbhdr || !employees || !addstring)
+    {
         return STATUS_ERROR;
+    }
 
     char *name = strtok(addstring, ",");
     char *addr = strtok(NULL, ",");
@@ -90,14 +101,11 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *
     if (!newbuf)
         return STATUS_ERROR;
 
-    /* set pointer back */
     *employees = newbuf;
 
-    /* initialize the new slot to zero then fill */
     struct employee_t *slot = &newbuf[new_count - 1];
     memset(slot, 0, sizeof(*slot));
 
-    /* copy and ensure NUL termination */
     strncpy(slot->name, name, sizeof(slot->name) - 1);
     slot->name[sizeof(slot->name) - 1] = '\0';
 
@@ -106,11 +114,10 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *
 
     slot->hours = atoi(hours);
 
-    dbhdr->count = (uint16_t)new_count; /* keep dbhdr->count in host-endian */
+    dbhdr->count = (uint16_t)new_count;
 
     return STATUS_SUCCESS;
 }
-
 
 int read_employees(int fd, struct dbheader_t *dbhdr, struct employee_t **employeesOut)
 {
@@ -130,7 +137,8 @@ int read_employees(int fd, struct dbheader_t *dbhdr, struct employee_t **employe
     }
 
     ssize_t got = read(fd, employees, (size_t)count * sizeof(struct employee_t));
-    if (got != (ssize_t)((size_t)count * sizeof(struct employee_t))) {
+    if (got != (ssize_t)((size_t)count * sizeof(struct employee_t)))
+    {
         free(employees);
         return STATUS_ERROR;
     }
@@ -150,9 +158,15 @@ int output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees)
     if (fd < 0 || !dbhdr)
         return STATUS_ERROR;
 
-    int realcount = dbhdr->count; /* host-endian */
+    int realcount = dbhdr->count;
 
-    /* Make a temporary copy of header and convert fields for disk */
+    off_t expected_filesize = sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount);
+
+    if(ftruncate(fd, expected_filesize) == -1) {
+        perror("ftruncate failed");
+        return STATUS_ERROR;
+    }
+
     struct dbheader_t hdr_copy = *dbhdr;
     hdr_copy.magic = htonl(hdr_copy.magic);
     hdr_copy.filesize = htonl((uint32_t)(sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount)));
@@ -165,7 +179,8 @@ int output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees)
     if (write(fd, &hdr_copy, sizeof(hdr_copy)) != sizeof(hdr_copy))
         return STATUS_ERROR;
 
-    for (int i = 0; i < realcount; ++i) {
+    for (int i = 0; i < realcount; ++i)
+    {
         struct employee_t tmp = employees[i];
         tmp.hours = htonl(tmp.hours);
         if (write(fd, &tmp, sizeof(tmp)) != sizeof(tmp))
@@ -174,7 +189,6 @@ int output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees)
 
     return STATUS_SUCCESS;
 }
-
 
 int validate_db_header(int fd, struct dbheader_t **headerOut)
 {
