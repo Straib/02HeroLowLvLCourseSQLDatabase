@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include <string.h>
 
 #include "common.h"
 #include "file.h"
@@ -23,12 +24,12 @@ int main(int argc, char *argv[])
     char *addstring = NULL;
     char *filepath = NULL;
     char *removestring = NULL;
+    bool updatestringbool = false;
 
     struct dbheader_t *dbhdr = NULL;
     struct employee_t *employees = NULL;
 
-
-    while ((c = getopt(argc, argv, "nf:a:ld:")) != -1)
+    while ((c = getopt(argc, argv, "nf:a:ld:u")) != -1)
     {
         switch (c)
         {
@@ -46,6 +47,9 @@ int main(int argc, char *argv[])
             break;
         case 'd':
             removestring = optarg;
+            break;
+        case 'u':
+            updatestringbool = true;
             break;
         case '?':
             printf("Unkown option -%c\n", c);
@@ -68,7 +72,8 @@ int main(int argc, char *argv[])
             printf("Unable to create database file\n");
             return -1;
         }
-        if(create_db_header(&dbhdr) == STATUS_ERROR) {
+        if (create_db_header(&dbhdr) == STATUS_ERROR)
+        {
             printf("failed to create database header\n");
         }
     }
@@ -80,27 +85,64 @@ int main(int argc, char *argv[])
             printf("Unable to open database file\n");
             return -1;
         }
-        if(validate_db_header(dbfd, &dbhdr) == STATUS_ERROR) {
+        if (validate_db_header(dbfd, &dbhdr) == STATUS_ERROR)
+        {
             printf("Failed to validagte database header \n");
             return -1;
         }
     }
 
-    if(read_employees(dbfd, dbhdr, &employees) != STATUS_SUCCESS) {
+    if (read_employees(dbfd, dbhdr, &employees) != STATUS_SUCCESS)
+    {
         printf("Failed to read employees");
         return -1;
     };
 
-    if(addstring) {
+    if (addstring)
+    {
         add_employee(dbhdr, &employees, addstring);
     }
 
-    if(list) {
+    if (list)
+    {
         list_employees(dbhdr, employees);
     }
 
-    if(removestring) {
+    if (removestring)
+    {
         remove_employee(dbhdr, &employees, removestring);
+    }
+
+    if (updatestringbool)
+    {
+        char username[50];
+        char updatestring[50];
+        printf("Enter the username of the User you wish to update\n");
+        if (fgets(username, sizeof(username), stdin) == NULL)
+        {
+            printf("Input cant be undefined\n");
+            return -1;
+        }
+        printf("Enter the updated value in form of [Username,Address,Hours\n]");
+        if (fgets(updatestring, sizeof(updatestring), stdin) == NULL)
+        {
+            printf("Input cant be undefined\n");
+            return -1;
+        }
+
+        char *p = strchr(username, '\n');
+        char *c = strchr(updatestring, '\n');
+        if (p != NULL)
+        {
+            *p = '\0';
+        }
+
+        if (c != NULL)
+        {
+            *c = '\0';
+        }
+
+        update_employee(dbhdr, &employees, updatestring, username);
     }
 
     output_file(dbfd, dbhdr, employees);

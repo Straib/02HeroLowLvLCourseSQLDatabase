@@ -10,6 +10,37 @@
 #include "common.h"
 #include "parse.h"
 
+int update_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *updatestring, char *updateUser)
+{
+    if (!dbhdr || !employees || !updatestring || !updateUser)
+    {
+        return STATUS_ERROR;
+    }
+
+    int userIndex = find_employee_index(dbhdr, *employees, updateUser);
+    if (userIndex == -1)
+    {
+        perror("no such employee\n");
+        return STATUS_ERROR;
+    }
+
+    char *name = strtok(updatestring, ",");
+    char *addr = strtok(NULL, ",");
+    char *hours = strtok(NULL, ",");
+    if (!name || !addr || !hours)
+        return STATUS_ERROR;
+
+    strncpy((*employees)[userIndex].name, name, sizeof((*employees)[userIndex].name) - 1);
+    (*employees)[userIndex].name[sizeof((*employees)[userIndex].name) - 1] = '\0';
+
+    strncpy((*employees)[userIndex].address, addr, sizeof((*employees)[userIndex].address) - 1);
+    (*employees)[userIndex].address[sizeof((*employees)[userIndex].address) - 1] = '\0';
+
+    (*employees)[userIndex].hours = atoi(hours);
+
+    return STATUS_SUCCESS;
+}
+
 int find_employee_index(struct dbheader_t *dbhdr, struct employee_t *employees, char *removestring)
 {
     if (!dbhdr || !employees || !removestring)
@@ -38,8 +69,9 @@ int remove_employee(struct dbheader_t *dbhdr, struct employee_t **employees, cha
     }
 
     int userIndex = find_employee_index(dbhdr, *employees, removestring);
-    if(userIndex == -1) {
-        perror("no such employee\n");
+    if (userIndex == -1)
+    {
+        printf("Employee not found\n");
         return STATUS_ERROR;
     }
 
@@ -47,7 +79,8 @@ int remove_employee(struct dbheader_t *dbhdr, struct employee_t **employees, cha
 
     size_t new_count = (size_t)dbhdr->count - 1;
 
-    if (new_count == 0) {
+    if (new_count == 0)
+    {
         free(*employees);
         *employees = NULL;
         dbhdr->count = 0;
@@ -162,7 +195,8 @@ int output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees)
 
     off_t expected_filesize = sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount);
 
-    if(ftruncate(fd, expected_filesize) == -1) {
+    if (ftruncate(fd, expected_filesize) == -1)
+    {
         perror("ftruncate failed");
         return STATUS_ERROR;
     }

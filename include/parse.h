@@ -28,5 +28,6 @@ int add_employee(struct dbheader_t *, struct employee_t **employees, char *addst
 int list_employees(struct dbheader_t *dbhdr, struct employee_t *employees);
 int remove_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *removestring);
 int find_employee_index(struct dbheader_t *dbhdr, struct employee_t *employees, char *removestring);
+int update_employee(struct dbheader_t *dbhdr, struct employee_t **employees, char *updatestring, char *updateUser);
 
 #endif
